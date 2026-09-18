@@ -1,5 +1,10 @@
 # Architecture and extension points
 
+Target direction: a shared multi-turn state/action layer with domain-specific
+tools and policies. This separation is planned in [the roadmap](roadmap.md);
+the current runtime remains primarily clinical and does not yet implement a
+domain-independent action selector.
+
 The public `interactive_agent` package exposes experiment metadata, explicit
 execution modes, offline artifacts and paired scoring. Scientific runners remain
 in `graphrag.eval`, preserving historical commands and checkpoint identities.

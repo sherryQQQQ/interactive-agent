@@ -1,16 +1,37 @@
 # Interactive Agent
 
-**A research platform for controlled experiments on clinical information
-gathering, handoff, and agent reliability.**
+**A research platform for action selection in information-incomplete,
+multi-turn tasks, with simulated medical tasks as the first testbed.**
 
-Compare question-selection policies and diagnostic context formats while
-tracking observations, citations, failures, latency, tokens, and estimated
-cost. Includes a bounded LangGraph interview workflow, offline fixtures,
-external benchmark adapters, and checkpointed Gemini experiments.
+The research direction is to study when an agent should answer, clarify,
+retrieve evidence, or stop/defer. Current implementations include a bounded
+clinical LangGraph workflow, handoff and question-selection experiments,
+offline fixtures, and checkpointed Gemini adapters. A domain-independent
+decision policy and cross-domain evaluation are **planned, not implemented
+or validated**.
 
 Research software for simulated cases, not a clinical service. The
 [original GraphRAG project](https://github.com/sherryQQQQ/RAG_Medical_Diagnosis)
 contains the retrieval comparison that motivated this work.
+
+## From retrieval to action selection
+
+| Stage | Main question | Status |
+|---|---|---|
+| Vector RAG / GraphRAG | Can the system retrieve useful evidence? | Legacy retrieval study, separate original repository |
+| Medical QA Agent | Does reflection or structured handoff improve answers? | Implemented; mixed/negative historical findings |
+| Interactive decision research | Given the current observations, should the agent answer, ask, retrieve, or stop? | New research direction; offline audit first |
+
+A conversation turn with a user is different from an internal reflection or
+tool-call iteration. Both budgets must be tracked. Medical rules and patient
+tools belong in the domain adapter; general state, provenance, budgets and
+action evaluation are candidates for a shared core. Current clinical modules
+have not yet been fully separated into that architecture.
+
+Historical traces show harmful reflection, missed clarification and excessive
+deferral. They motivate an action-boundary audit; they do **not** establish that
+most errors are boundary errors or that a new router will improve performance.
+See [the research roadmap](docs/roadmap.md) for the next controlled steps.
 
 ## Start in five minutes
 

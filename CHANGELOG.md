@@ -1,5 +1,12 @@
 # Changelog
 
+## Research direction clarification
+
+- Reframed the project around action selection in incomplete-information,
+  multi-turn tasks, with medical simulation as the initial testbed.
+- Added an audit-first roadmap and distinguished future shared-core work from
+  existing clinical implementations. No new model calls or performance claims.
+
 ## 0.1.0 — research-platform foundation
 
 - Added installable CLI, experiment registry and explicit execution modes.
