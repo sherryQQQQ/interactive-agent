@@ -67,6 +67,15 @@ def main(argv=None):
     comparison.add_argument("records", type=Path)
     comparison.add_argument("--baseline", required=True)
     comparison.add_argument("--candidate", required=True)
+    audit = sub.add_parser(
+        "audit-boundaries",
+        help="Aggregate saved action-boundary traces offline; never call providers",
+    )
+    audit.add_argument("--workspace", type=Path, default=Path("."))
+    audit.add_argument("--revision-v1", type=Path)
+    audit.add_argument("--revision-v2", type=Path)
+    audit.add_argument("--routing", type=Path)
+    audit.add_argument("--output", type=Path)
     experiment = sub.add_parser("experiment", help="Invoke a guarded research adapter")
     experiment.add_argument("--workspace", default=".")
     experiment.add_argument("name", choices=EXPERIMENTS)
@@ -92,6 +101,23 @@ def main(argv=None):
         elif args.command == "compare":
             from interactive_agent.scoring import compare
             result = compare(json.loads(args.records.read_text()), args.baseline, args.candidate)
+        elif args.command == "audit-boundaries":
+            from interactive_agent.boundary_audit import run_boundary_audit
+            workspace = args.workspace.resolve()
+            external = workspace / "graphrag/eval/external"
+            result = run_boundary_audit(
+                revision_v1=(args.revision_v1 or external / "mirage/textbooks_scaled_results.json"),
+                revision_v2=(args.revision_v2 or external / "mirage/stage5j_agent_v2_scaled.json"),
+                routing=(args.routing or external / "refusalbench/stage5l_results.json"),
+            )
+            if args.output:
+                if args.output.exists():
+                    raise ValueError("Output already exists; choose a new audit report path")
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.write_text(
+                    json.dumps(result, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
         else:
             dispatch(args.name, args.arguments, args.workspace)
             return

@@ -24,6 +24,11 @@ must also be separated from intentional uncertainty decisions.
    selection, harmful revision and tool/schema errors. Allow multiple labels
    and an unknown category; report missing traces and denominators. Mark manual
    versus automated labels and do not treat explanations as causal proof.
+
+   Implemented foundation: `interactive-agent audit-boundaries` aggregates
+   revision outcomes, action mismatches, false deferrals, unsafe answers and
+   infrastructure errors without exposing raw case text. This is the automatic
+   observable-event layer; manual adjudication remains outstanding.
 2. **Extract minimal contracts.** Define observation/state, provenance, actions,
    tool results and separate dialogue/compute budgets. Keep medical required
    facts, patient simulation and domain safety policy in the adapter. Preserve

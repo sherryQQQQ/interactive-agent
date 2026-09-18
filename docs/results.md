@@ -22,3 +22,28 @@ that handoff improves accuracy or that information acquisition is the dominant
 bottleneck. IG fairness-v2 has offline tests only; earlier calls cannot be
 relabelled as revised-protocol results. Distractor studies remain experimental.
 No GPU-training results or clinical validation are available.
+
+## Offline action-boundary audit
+
+`interactive-agent audit-boundaries` recomputes the following aggregates from
+ignored local result files with zero model calls. It fingerprints each source;
+no case text or raw output is written to the report.
+
+| Revision experiment | Correct drafts retried → harmed | Wrong drafts retried → recovered |
+|---|---:|---:|
+| Agent v1, MIRAGE n=100 | 11/14 | 0/7 |
+| Agent v2, MIRAGE n=100 | 0/0 (no correct draft retried) | 1/3 |
+
+The external 36-case routing stress test produced these observable actions:
+
+| System | Exact action | False deferral on 18 answerable | Answer on 18 unanswerable | Invalid | Gate-error records |
+|---|---:|---:|---:|---:|---:|
+| Direct RAG | 13/36 | 8/18 | 10/18 | 4 | 0 |
+| Agent v2 | 11/36 | 7/18 | 9/18 | 8 | 0 |
+| Agent v3 | 12/36 | 14/18 | 6/18 | 0 | 7 |
+
+All systems missed the three expected clarification actions. Agent v3 removed
+invalid action formats and reduced answers on unanswerable cases, but shifted
+strongly toward deferral. Seven of its records contained gate errors. These
+figures describe benchmark-contract mismatches, not clinically adjudicated
+errors, and the MIRAGE and routing populations must not be pooled.

@@ -33,6 +33,12 @@ deferral. They motivate an action-boundary audit; they do **not** establish that
 most errors are boundary errors or that a new router will improve performance.
 See [the research roadmap](docs/roadmap.md) for the next controlled steps.
 
+`interactive-agent audit-boundaries` reads ignored local results and prints
+aggregate counts and source hashes only. It makes zero model calls. Missing
+sources are reported rather than downloaded. Add
+`--output runs/boundary-audit.json` to save a report; existing files are never
+overwritten.
+
 ## Start in five minutes
 
 Python 3.11–3.13. No GPU, API key, or downloaded medical data is needed for
@@ -46,6 +52,7 @@ interactive-agent catalog
 interactive-agent doctor
 interactive-agent demo --output runs/demo
 interactive-agent report runs/demo
+interactive-agent audit-boundaries
 python -m pytest tests graphrag/agent/test_clinical_agent.py graphrag/eval/test_mediq_ig.py
 ```
 

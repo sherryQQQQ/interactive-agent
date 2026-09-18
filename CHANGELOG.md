@@ -6,6 +6,8 @@
   multi-turn tasks, with medical simulation as the initial testbed.
 - Added an audit-first roadmap and distinguished future shared-core work from
   existing clinical implementations. No new model calls or performance claims.
+- Added a zero-cost boundary audit that keeps experiments separate, fingerprints
+  local sources and reports observable revision/routing events without raw text.
 
 ## 0.1.0 — research-platform foundation
 
