@@ -1,6 +1,11 @@
 # Phase 0 — Zero-Cost Compression Analysis (Stages 5N/5O)
 
-Produced by `python -m graphrag.eval.compression_analysis` from the committed
+> Historical analysis. Checkpoints are local, not distributed. A valid source
+> ID is not proof of semantic faithfulness; shared errors do not prove missing
+> information caused them. The pilot does not establish an accuracy advantage.
+> See [the current protocol audit](research-protocol.md).
+
+Produced by `python -m graphrag.eval.compression_analysis` from the local
 Stage 5N/5O checkpoints. **No model calls were made** (`model_calls_made: 0` in
 `graphrag/eval/data/compression_analysis_metrics.json`). All numbers below are
 recomputed from data already paid for.

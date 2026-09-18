@@ -50,7 +50,6 @@ from graphrag.eval.mediq_handoff_benchmark import (
 from graphrag.eval.mediq_handoff_data import (
     ConceptAwareFactPatient,
     DEFAULT_ROOT,
-    DeterministicFactPatient,
     MediQCase,
     dataset_fingerprint,
     load_cases,
@@ -62,7 +61,7 @@ from graphrag.eval.mirage_benchmark import (
 )
 from graphrag.eval.mirage_corpus import DEFAULT_INDEX, TextbooksBM25Retriever
 
-IG_SPEC_PATH = pathlib.Path("graphrag/eval/specs/mediq_ig_selection.json")
+IG_SPEC_PATH = pathlib.Path(__file__).parent / "specs" / "mediq_ig_selection.json"
 IG_CHECKPOINT = DEFAULT_ROOT / "ig_provider_checkpoint.json"
 IG_RESULTS = DEFAULT_ROOT / "ig_results.json"
 IG_LOG = DEFAULT_ROOT / "ig_run_log.jsonl"
@@ -75,6 +74,7 @@ MAX_PROVIDER_CALLS = 5_000
 MAX_PROMPT_CHARS = 16_000
 
 ARMS = ("llm-freeform", "oracle-ig", "simulated-ig")
+PROTOCOL_VERSION = "fairness-v2"
 
 # --------------------------------------------------------------------------
 # Schemas
@@ -317,7 +317,8 @@ def _run_llm_freeform_arm(
                           "input_tokens": r.input_tokens, "output_tokens": r.output_tokens})
         return r
 
-    for turn_n in range(MAX_QUESTIONS):
+    # The final pass incorporates the last answer, without asking another question.
+    for turn_n in range(MAX_QUESTIONS + 1):
         call_id = f"{case.case_id}:ff:interview:{turn_n}"
         prompt = _interview_prompt(case, conversation, handoff, MAX_QUESTIONS)
         last_error = None
@@ -343,7 +344,7 @@ def _run_llm_freeform_arm(
             break
 
         handoff = update.handoff
-        if update.decision.action == "finalize":
+        if turn_n == MAX_QUESTIONS or update.decision.action == "finalize":
             break
         question = update.decision.question
         if not question:
@@ -443,7 +444,7 @@ def _run_ig_arm(
 
         # Score each candidate
         best_idx = 0
-        best_delta = -1.0
+        best_delta = -math.inf
         scored_candidates = []
         for m, cand in enumerate(candidates[:N_CANDIDATES]):
             question = str(cand.get("question", "")).strip()
@@ -452,7 +453,9 @@ def _run_ig_arm(
 
             # Get patient answer
             if mode == "oracle":
-                patient_answer = patient(question, conversation)
+                # Every candidate sees the same pre-question patient state.
+                # Probing must not consume facts in the live interview.
+                patient_answer = copy.deepcopy(patient)(question, conversation)
             else:
                 patient_answer = str(cand.get("simulated_answer", "")).strip() or "I don't know."
 
@@ -480,7 +483,7 @@ def _run_ig_arm(
             })
             if delta > best_delta:
                 best_delta = delta
-                best_idx = m
+                best_idx = len(scored_candidates) - 1
 
         if not scored_candidates:
             errors.append(f"no_scored_candidates:turn_{turn_n}")
@@ -498,10 +501,7 @@ def _run_ig_arm(
         # We inject the selected question as a pre-committed choice and let the
         # interviewer update the handoff with the real patient answer.
         best_question = selected["question"]
-        real_answer = (
-            selected["patient_answer"] if mode == "oracle"
-            else patient(best_question, conversation)
-        )
+        real_answer = patient(best_question, conversation)
 
         agent_turn_id = f"agent-{turn_n + 1}"
         patient_turn_id = f"patient-{turn_n + 1}"
@@ -637,18 +637,16 @@ def run_ig_case(
             "checkpoint_reused": r.reused,
         })
 
-    patient_oracle = ConceptAwareFactPatient(case)
-    patient_freeform = DeterministicFactPatient(case)
-
     results_by_arm: dict[str, dict] = {}
 
     for arm in ARMS:
+        patient = ConceptAwareFactPatient(case)
         if arm == "llm-freeform":
-            state = _run_llm_freeform_arm(case, provider, patient_freeform, retriever, record)
+            state = _run_llm_freeform_arm(case, provider, patient, retriever, record)
         elif arm == "oracle-ig":
-            state = _run_ig_arm(case, provider, patient_oracle, retriever, record, mode="oracle")
+            state = _run_ig_arm(case, provider, patient, retriever, record, mode="oracle")
         else:
-            state = _run_ig_arm(case, provider, patient_oracle, retriever, record, mode="simulated")
+            state = _run_ig_arm(case, provider, patient, retriever, record, mode="simulated")
 
         handoff = state["handoff"]
         conversation = state["conversation"]
@@ -750,9 +748,9 @@ def compute_ig_metrics(results: list[dict]) -> dict[str, Any]:
     for arm in arms:
         correct = sum(
             1 for r in results
-            if r["arms"].get(arm, {}).get("diagnosis", {}).get("correct", False)
+            if r.get("arms", {}).get(arm, {}).get("diagnosis", {}).get("correct", False)
         )
-        n = sum(1 for r in results if arm in r.get("arms", {}))
+        n = n_total  # All attempted cases, including tool/provider failures.
         accuracy[arm] = correct / n if n > 0 else 0.0
         n_correct[arm] = correct
 
@@ -760,8 +758,8 @@ def compute_ig_metrics(results: list[dict]) -> dict[str, Any]:
     for alt_arm in arms[1:]:
         wins = losses = ties = 0
         for r in results:
-            a_correct = r["arms"].get("llm-freeform", {}).get("diagnosis", {}).get("correct", False)
-            b_correct = r["arms"].get(alt_arm, {}).get("diagnosis", {}).get("correct", False)
+            a_correct = r.get("arms", {}).get("llm-freeform", {}).get("diagnosis", {}).get("correct", False)
+            b_correct = r.get("arms", {}).get(alt_arm, {}).get("diagnosis", {}).get("correct", False)
             if b_correct and not a_correct:
                 wins += 1
             elif a_correct and not b_correct:
@@ -787,12 +785,13 @@ def compute_ig_metrics(results: list[dict]) -> dict[str, Any]:
         deltas = [
             turn["selected_delta_h"]
             for r in results
-            for turn in r["arms"].get(arm, {}).get("ig_trace", [])
+            for turn in r.get("arms", {}).get(arm, {}).get("ig_trace", [])
         ]
-        mean_delta_h[arm] = statistics.mean(deltas) if deltas else float("nan")
+        mean_delta_h[arm] = statistics.mean(deltas) if deltas else None
 
     return {
         "n_cases": n_total,
+        "failed_cases": sum(r.get("status") == "failed" for r in results),
         "accuracy": {arm: round(accuracy[arm], 6) for arm in arms},
         "n_correct": n_correct,
         "accuracy_95ci": {arm: list(ci[arm]) for arm in arms},
@@ -844,7 +843,7 @@ def run_ig_benchmark(
                 for arm in ARMS if arm in result["arms"]
             }
             status_str = result.get("status", "?")
-            cost = provider.estimated_cost_usd if hasattr(provider, "estimated_cost_usd") else 0.0
+            cost = provider.spent
             print(f"[{pos}/{total}] {case.case_id}: {status_str} "
                   f"ff={arm_correct.get('llm-freeform','?')} "
                   f"or={arm_correct.get('oracle-ig','?')} "
@@ -856,6 +855,9 @@ def run_ig_benchmark(
                 "status": status_str, "arm_correct": arm_correct,
                 "elapsed_s": round(elapsed, 1),
             })
+        except RuntimeError:
+            # Replay misses and resource guards must stop, not become observations.
+            raise
         except Exception as exc:
             elapsed = time.perf_counter() - t0
             print(f"[{pos}/{total}] {case.case_id}: FAILED {type(exc).__name__}: {exc}")
@@ -871,13 +873,16 @@ def run_ig_benchmark(
             })
 
         # Save after every case
-        metrics = compute_ig_metrics([r for r in results if r.get("status") != "failed"])
+        metrics = compute_ig_metrics(results)
         output = {
             "experiment": "phase-ig",
+            "protocol_version": PROTOCOL_VERSION,
             "set": dataset_set,
             "selection_fingerprint": spec["selection_fingerprint"],
             "results": results,
             "metrics": metrics,
+            "provider": {"estimated_cost_usd": provider.spent,
+                         "logical_calls": len(provider.payload["calls"])},
         }
         results_path.write_text(json.dumps(output, indent=2, default=str))
 
@@ -903,6 +908,8 @@ def main() -> None:
                         help="Print plan without executing")
     parser.add_argument("--execute", action="store_true",
                         help="Required flag to actually run paid calls")
+    parser.add_argument("--reuse-only", action="store_true",
+                        help="Replay existing calls; never contact the provider")
     parser.add_argument(
         "--source",
         type=pathlib.Path,
@@ -910,19 +917,31 @@ def main() -> None:
     )
     parser.add_argument("--index", type=pathlib.Path, default=DEFAULT_INDEX)
     args = parser.parse_args()
+    if args.limit is not None and args.limit <= 0:
+        parser.error("--limit must be positive")
+    if sum((args.execute, args.reuse_only, args.dry_run)) != 1:
+        parser.error("Choose exactly one of --dry-run, --reuse-only, --execute")
 
     spec = load_ig_spec()
     cases = load_ig_cases(spec, args.set, args.source)
+    if not cases:
+        parser.error("No cases matched the frozen selection")
     if args.limit:
         cases = cases[: args.limit]
 
     fingerprint = ig_dataset_fingerprint(cases, spec)
 
     if args.dry_run:
-        calls_per_case = 3 * (N_CANDIDATES * 2 + 2) + 3  # rough
+        # Freeform: Q+1 updates + diagnosis. Each IG arm: candidate generation,
+        # baseline, M scores, handoff update per question, plus diagnosis.
+        calls_per_case = MAX_QUESTIONS + 2 + 2 * (
+            MAX_QUESTIONS * (N_CANDIDATES + 3) + 1
+        )
         est_cost = len(cases) * calls_per_case * 0.0015
         print(json.dumps({
             "set": args.set,
+            "protocol_version": PROTOCOL_VERSION,
+            "estimate_excludes_retries": True,
             "n_cases": len(cases),
             "dataset_fingerprint": fingerprint,
             "est_calls": len(cases) * calls_per_case,
@@ -931,25 +950,26 @@ def main() -> None:
         }, indent=2))
         return
 
-    if not args.execute:
+    if not args.execute and not args.reuse_only:
         print("Pass --execute to run paid calls (or --dry-run to preview).")
         return
 
     from dotenv import load_dotenv
     load_dotenv()
 
-    checkpoint_path = DEFAULT_ROOT / f"ig_{args.set}_checkpoint.json"
-    results_path = DEFAULT_ROOT / f"ig_{args.set}_results.json"
-    log_path = DEFAULT_ROOT / f"ig_{args.set}_run_log.jsonl"
+    checkpoint_path = DEFAULT_ROOT / f"ig_{args.set}_{PROTOCOL_VERSION}_checkpoint.json"
+    results_path = DEFAULT_ROOT / f"ig_{args.set}_{PROTOCOL_VERSION}_results.json"
+    log_path = DEFAULT_ROOT / f"ig_{args.set}_{PROTOCOL_VERSION}_run_log.jsonl"
 
     provider = CheckpointedGeminiProvider(
         model="gemini-2.5-flash",
         checkpoint_path=checkpoint_path,
-        fingerprint=fingerprint,
+        fingerprint=f"{fingerprint}:{PROTOCOL_VERSION}",
         max_calls=MAX_PROVIDER_CALLS,
         max_cost_usd=spec[f"cost_guard_{args.set}_usd"],
         max_prompt_chars=MAX_PROMPT_CHARS,
         max_output_tokens=MAX_OUTPUT_TOKENS,
+        allow_new_calls=not args.reuse_only,
     )
     retriever = TextbooksBM25Retriever(args.index)
 

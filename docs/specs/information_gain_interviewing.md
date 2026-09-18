@@ -1,5 +1,11 @@
 # Pre-Registration — Information-Gain-Guided Interviewing (Phase IG)
 
+> Historical frozen proposal, retained for audit. The fairness-v2 amendment in
+> [experiments](../experiments.md) supersedes implementation and cost estimates.
+> Shared errors do not establish an acquisition bottleneck, an oracle null does
+> not establish a performance ceiling, and a single imagined answer is not
+> expected information gain. See [protocol limitations](../research-protocol.md).
+
 **Status:** frozen design, NOT executed. Requires owner approval before any
 paid run. Written before seeing any data from this experiment.
 

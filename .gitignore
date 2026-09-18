@@ -29,3 +29,9 @@ graphrag/eval/external/
 /Medical_GraphRAG_Interview_STAR.docx
 /docs/internship_talking_points.md
 /docs/claude_code_handoff.md
+/docs/interview_summary_compaction.md
+/runs/
+/build/
+/dist/
+*.egg-info/
+.pytest_cache/

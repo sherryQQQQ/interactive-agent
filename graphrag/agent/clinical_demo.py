@@ -112,7 +112,7 @@ def _diagnose(_packet):
     )
 
 
-def main() -> None:
+def run_demo() -> dict:
     agent = build_clinical_handoff_agent(
         interview=_interview,
         tools=ClinicalTools(
@@ -125,7 +125,11 @@ def main() -> None:
         ),
     )
     result = agent.invoke(initial_clinical_state("I have sudden chest discomfort."))
-    print(json.dumps(serializable_clinical_result(result), indent=2))
+    return serializable_clinical_result(result)
+
+
+def main() -> None:
+    print(json.dumps(run_demo(), indent=2))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,14 @@
+.git
+.env*
+.venv*
+**/__pycache__
+graphrag/eval/external
+runs
+build
+dist
+*.egg-info
+kellogg_change_point_refactor
+*.docx
+docs/*interview*
+docs/internship_talking_points.md
+docs/claude_code_handoff.md
