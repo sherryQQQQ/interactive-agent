@@ -64,6 +64,26 @@ directories are never overwritten.
 For the full legacy-and-platform test suite, install the optional retrieval
 dependencies with `pip install -e '.[dev,retrieval]'`, then run `python -m pytest`.
 
+## Standard evaluation logs
+
+The first [Inspect AI](https://inspect.aisi.org.uk/) adapter maps the scripted
+clinical workflow to a standard task, solver, event trajectory and custom
+scorer. It checks six orchestration contracts: termination, question budget,
+expected action sequence, patient-tool success, retrieval-tool success and a
+grounded handoff. It makes no provider/model calls and is **not** evidence of
+medical answer quality.
+
+```bash
+python -m pip install -e '.[dev,inspect]'
+inspect eval interactive_agent/inspect_eval.py@clinical_scripted_contract \
+  --display none --log-dir runs/inspect-contract
+inspect view --log-dir runs/inspect-contract
+```
+
+Inspect is optional so the core package remains small. Legacy paid experiment
+adapters have not yet been migrated; their checkpoint identities and historical
+outputs remain unchanged.
+
 ## Research workflows
 
 | Question | Experiment | Status |
@@ -122,7 +142,7 @@ study. Valid source IDs do not establish semantic faithfulness. See
 
 | Location | Responsibility |
 |---|---|
-| `interactive_agent/` | Public CLI, registry, run artifacts, paired scoring |
+| `interactive_agent/` | Public CLI, registry, run artifacts, paired scoring, Inspect task |
 | `graphrag/agent/clinical_*` | Typed state, injected tools, LangGraph workflow |
 | `graphrag/eval/mediq_*` | Research adapters and frozen selections |
 | `graphrag/eval/checkpointed_gemini.py` | Checkpoints and budget controls |

@@ -29,6 +29,9 @@ must also be separated from intentional uncertainty decisions.
    revision outcomes, action mismatches, false deferrals, unsafe answers and
    infrastructure errors without exposing raw case text. This is the automatic
    observable-event layer; manual adjudication remains outstanding.
+   A zero-call Inspect AI contract task now emits a standard trajectory and
+   deterministic score for the scripted workflow; it is infrastructure
+   validation, not a research result.
 2. **Extract minimal contracts.** Define observation/state, provenance, actions,
    tool results and separate dialogue/compute budgets. Keep medical required
    facts, patient simulation and domain safety policy in the adapter. Preserve

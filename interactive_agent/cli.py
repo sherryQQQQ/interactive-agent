@@ -18,13 +18,18 @@ def doctor():
             packages[name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:
             packages[name] = None
+    try:
+        inspect_version = importlib.metadata.version("inspect-ai")
+    except importlib.metadata.PackageNotFoundError:
+        inspect_version = None
     with sqlite3.connect(":memory:") as conn:
         try:
             conn.execute("CREATE VIRTUAL TABLE probe USING fts5(text)")
             fts5 = True
         except sqlite3.OperationalError:
             fts5 = False
-    return {"python": sys.version.split()[0], "packages": packages, "sqlite_fts5": fts5,
+    return {"python": sys.version.split()[0], "packages": packages,
+            "optional_packages": {"inspect-ai": inspect_version}, "sqlite_fts5": fts5,
             "ready": all(packages.values()) and fts5,
             "network_calls": 0, "note": "Does not test credentials or external data"}
 

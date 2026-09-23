@@ -17,6 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest==8.3.4"]
 retrieval = ["neo4j==6.2.0", "faiss-cpu==1.13.2", "sentence-transformers==5.5.0"]
+inspect = ["inspect-ai==0.3.267"]
 
 [project.scripts]
 interactive-agent = "interactive_agent.cli:main"

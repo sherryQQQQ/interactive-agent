@@ -24,3 +24,17 @@ jobs:
       - run: interactive-agent demo --output runs/ci-demo
       - run: interactive-agent report runs/ci-demo
       - run: python -m pip wheel --no-deps . --wheel-dir dist
+  inspect-contract:
+    runs-on: ubuntu-latest
+    env:
+      LANGSMITH_TRACING: 'false'
+      LANGCHAIN_TRACING_V2: 'false'
+      MEDICAL_RAG_LANGSMITH_TRACING: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: python -m pip install -e '.[dev,inspect]'
+      - run: python -m pytest tests/test_inspect_integration.py

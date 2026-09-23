@@ -10,6 +10,13 @@ execution modes, offline artifacts and paired scoring. Scientific runners remain
 in `graphrag.eval`, preserving historical commands and checkpoint identities.
 This is a staged migration, not a claim that all runners use one artifact schema.
 
+`interactive_agent.inspect_eval` is the first integration with Inspect AI. The
+scripted fixture is represented as a one-sample `Task`; the LangGraph run is an
+Inspect solver, each agent action is a transcript event, and a deterministic
+custom scorer checks orchestration contracts. The log records zero model usage.
+This validates the evaluation seam only. It does not score diagnosis quality,
+and the historical Gemini runners continue using their original checkpoints.
+
 ## Agent layer
 
 `graphrag.agent.clinical_handoff` defines typed facts, source turns, handoffs and
