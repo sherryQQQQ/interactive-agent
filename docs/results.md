@@ -23,6 +23,14 @@ bottleneck. IG fairness-v2 has offline tests only; earlier calls cannot be
 relabelled as revised-protocol results. Distractor studies remain experimental.
 No GPU-training results or clinical validation are available.
 
+## Standard checkpoint replay
+
+The local Agent v2 MIRAGE checkpoint was replayed through Inspect AI as 100
+paired samples (source SHA-256 prefix `5599405a677b`). The replay reproduced
+closed-book 84%, textbooks RAG 78% and textbooks Agent 76%, with no non-empty
+model-usage records. This is a schema/pairing migration check, not a new model
+experiment and not additional evidence for or against the Agent.
+
 ## Offline action-boundary audit
 
 `interactive-agent audit-boundaries` recomputes the following aggregates from

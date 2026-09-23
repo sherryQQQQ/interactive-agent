@@ -32,6 +32,9 @@ must also be separated from intentional uncertainty decisions.
    A zero-call Inspect AI contract task now emits a standard trajectory and
    deterministic score for the scripted workflow; it is infrastructure
    validation, not a research result.
+   The 100-case Agent v2 checkpoint now also replays as strictly paired Inspect
+   samples without copying raw benchmark/model text; all three historical
+   accuracies were reproduced with zero model usage.
 2. **Extract minimal contracts.** Define observation/state, provenance, actions,
    tool results and separate dialogue/compute budgets. Keep medical required
    facts, patient simulation and domain safety policy in the adapter. Preserve

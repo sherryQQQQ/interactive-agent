@@ -17,6 +17,13 @@ custom scorer checks orchestration contracts. The log records zero model usage.
 This validates the evaluation seam only. It does not score diagnosis quality,
 and the historical Gemini runners continue using their original checkpoints.
 
+`inspect_checkpoint_eval` is the first historical-results migration. It groups
+the three MIRAGE arms by case before scoring, rejects incomplete or duplicate
+pairs, fingerprints the source and copies only normalized outcome/resource
+fields. Benchmark questions, retrieved text and raw responses are deliberately
+excluded from the Inspect log. This avoids both data redistribution and the
+false independence created by treating three paired arms as unrelated samples.
+
 ## Agent layer
 
 `graphrag.agent.clinical_handoff` defines typed facts, source turns, handoffs and

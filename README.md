@@ -84,6 +84,19 @@ Inspect is optional so the core package remains small. Legacy paid experiment
 adapters have not yet been migrated; their checkpoint identities and historical
 outputs remain unchanged.
 
+An offline MIRAGE replay adapter validates strict three-arm pairing and writes
+one Inspect sample per case. It excludes questions, passages and raw model
+answers from the new log:
+
+```bash
+inspect eval interactive_agent/inspect_checkpoint_eval.py@mirage_paired_checkpoint \
+  -T results_path=graphrag/eval/external/mirage/stage5j_agent_v2_scaled.json \
+  --display none --log-dir runs/inspect-stage5j-v2-replay
+```
+
+The source file remains ignored and local. Replaying it creates zero provider
+calls; missing, duplicate or unmatched system records fail before evaluation.
+
 ## Research workflows
 
 | Question | Experiment | Status |
